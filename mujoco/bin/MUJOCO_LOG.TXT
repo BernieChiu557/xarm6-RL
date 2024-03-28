@@ -1,0 +1,3 @@
+Wed Feb 14 23:51:18 2024
+ERROR: Auxiliary buffer height exceeds maximum allowed by OpenGL implementation: 18528 > 16384
+

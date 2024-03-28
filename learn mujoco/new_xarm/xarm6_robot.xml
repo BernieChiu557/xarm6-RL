@@ -1,0 +1,91 @@
+<mujoco model="xarm6">
+  <compiler angle="radian" meshdir="xarm_description_mujoco/"/>
+  <option timestep="0.002">
+    <flag gravity="disable"/>
+  </option>
+  
+  <default>
+    <default class="translation">
+      <position kp="10000" kv="10000" ctrlrange="-.25 .25"/>
+    </default>
+    <default class="rotation">
+      <!--
+      Note that the rotational control range is purposefully limited to (-pi/2, pi/2) to avoid the
+      documented instabillity near pi, which is due to taking quaternion differences.
+      Increase this range to pi or bigger in order to see the instabillity.
+      See here for more details https://mujoco.readthedocs.io/en/latest/XMLreference.html#actuator
+      -->
+      <position kp="10000" kv="10000" ctrlrange="-1.571 1.571"/>
+    </default>
+    <!--
+    Clamping the total actuator torque at the joints means that the motion produced by the Cartesian
+    commands is achievable by individual joint actuators with the specified torque limits.
+    See https://mujoco.readthedocs.io/en/latest//modeling.html#actuator-force-clamping
+    -->
+    <joint stiffness="1e-1" actuatorfrcrange="-1 1"/>
+    <site type="box" size=".012 .012 .012" rgba=".7 .7 .8 1"/>
+  </default>
+  
+  <asset>
+    <mesh name="base_vhacd" file="base.stl"/>
+    <mesh name="link1_vhacd" file="link1.stl"/>
+    <mesh name="link2_vhacd" file="link2.stl"/>
+    <mesh name="link3_vhacd" file="link3.stl"/>
+    <mesh name="link4_vhacd" file="link4.stl"/>
+    <mesh name="link5_vhacd" file="link5.stl"/>
+    <mesh name="link6_vhacd" file="link6.stl"/>
+  </asset>
+  <worldbody>
+    <light pos="0 0 2"/>
+    <geom type="box" size="0.11 0.11 .01" pos="0 0 -.01"/>
+    <site name="reference" pos="0.2 0 0.1"/>
+    <geom type="mesh" rgba="0.28 0.52 0.92 1" mesh="base_vhacd"/>
+    <body name="link1" pos="0 0 0.267">
+      <inertial pos="-0.002 0.02692 -0.01332" quat="0.983139 0.180751 -0.00455228 0.0272976" mass="2.16" diaginertia="0.00539487 0.00519906 0.00281397"/>
+      <joint name="joint1" pos="0 0 0" axis="0 0 1" range="-6.28319 6.28319" damping="1" frictionloss="1"/>
+      <geom type="mesh" rgba="0.85 0.19 0.21 1" mesh="link1_vhacd"/>
+      <body name="link2" quat="0.707105 -0.707108 0 0">
+        <inertial pos="0.03531 -0.21398 0.03386" quat="0.71118 0.614686 0.139936 -0.311132" mass="1.71" diaginertia="0.017867 0.017867 0.017867"/>
+        <joint name="joint2" pos="0 0 0" axis="0 0 1" range="-2.059 2.0944" damping="1" frictionloss="1"/>
+        <geom type="mesh" rgba="0.95 0.76 0.05 1" mesh="link2_vhacd"/>
+        <body name="link3" pos="0.0535 -0.2845 0">
+          <inertial pos="0.06781 0.10749 0.01457" quat="0.119516 0.409082 -0.734824 0.527638" mass="1.384" diaginertia="0.004543 0.004543 0.004543"/>
+          <joint name="joint3" pos="0 0 0" axis="0 0 1" range="-3.927 0.19198" damping="1" frictionloss="1"/>
+          <geom type="mesh" rgba="0.28 0.52 0.92 1" mesh="link3_vhacd"/>
+          <body name="link4" pos="0.0775 0.3425 0" quat="0.707105 -0.707108 0 0">
+            <inertial pos="-0.00021 0.02578 -0.02538" quat="0.994019 0.0752563 -0.00686804 0.0788347" mass="1.115" diaginertia="0.00440091 0.00406855 0.00103407"/>
+            <joint name="joint4" pos="0 0 0" axis="0 0 1" range="-6.28319 6.28319" damping="1" frictionloss="1"/>
+            <geom type="mesh" rgba="0.23 0.72 0.32 1" mesh="link4_vhacd"/>
+            <body name="link5" quat="0.707105 0.707108 0 0">
+              <inertial pos="0.05428 0.01781 0.00543" quat="-0.0766302 0.578118 -0.269638 0.766291" mass="1.275" diaginertia="0.00289757 0.0023276 0.000951789"/>
+              <joint name="joint5" pos="0 0 0" axis="0 0 1" range="-1.69297 3.14159" damping="1" frictionloss="1"/>
+              <geom type="mesh" rgba="0.85 0.19 0.21 1" mesh="link5_vhacd"/>
+              <body name="link6" pos="0.076 0.097 0" quat="0.707105 -0.707108 0 0">
+                <inertial pos="0 0.00064 -0.00952" quat="0 0.707107 0 0.707107" mass="0.1096" diaginertia="7.9715e-05 4.8111e-05 4.5293e-05"/>
+                <joint name="joint6" pos="0 0 0" axis="0 0 1" range="-6.28319 6.28319" damping="1" frictionloss="1"/>
+                <geom type="mesh" rgba="0.753 0.753 0.753 1" mesh="link6_vhacd"/>
+                <site name="end_effector" pos="0 0 0"/>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+  <!-- <actuator>
+    <motor ctrllimited="true" ctrlrange="-1.0 1.0" gear="200.0" joint="joint1"/>
+    <motor ctrllimited="true" ctrlrange="-1.0 1.0" gear="200.0" joint="joint2"/>
+    <motor ctrllimited="true" ctrlrange="-1.0 1.0" gear="200.0" joint="joint3"/>
+    <motor ctrllimited="true" ctrlrange="-1.0 1.0" gear="200.0" joint="joint4"/>
+    <motor ctrllimited="true" ctrlrange="-1.0 1.0" gear="200.0" joint="joint5"/>
+    <motor ctrllimited="true" ctrlrange="-1.0 1.0" gear="200.0" joint="joint6"/>
+  </actuator> -->
+  <actuator>
+    <position name="x"  site="end_effector" refsite="reference" gear="1 0 0 0 0 0" class="translation"/>
+    <position name="y"  site="end_effector" refsite="reference" gear="0 1 0 0 0 0" class="translation"/>
+    <position name="z"  site="end_effector" refsite="reference" gear="0 0 1 0 0 0" class="translation"/>
+    <position name="rx" site="end_effector" refsite="reference" gear="0 0 0 1 0 0" class="rotation"/>
+    <position name="ry" site="end_effector" refsite="reference" gear="0 0 0 0 1 0" class="rotation"/>
+    <position name="rz" site="end_effector" refsite="reference" gear="0 0 0 0 0 1" class="rotation"/>
+  </actuator>
+</mujoco>
