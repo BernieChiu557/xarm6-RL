@@ -12,6 +12,9 @@ class xArm6ReachEnv(MujocoXarm6Env, EzPickle):
         else:
             MODEL_XML_PATH = os.path.join('assets', 'reach.xml')
         fullpath = os.path.join(os.path.dirname(__file__), MODEL_XML_PATH)
+        # print(reward_type)
+        # print(distraction)
+        # print(fullpath)
 
         initial_qpos = {
             'robot0:slide0': 0.,

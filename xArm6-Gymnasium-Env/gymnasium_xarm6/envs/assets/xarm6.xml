@@ -48,7 +48,7 @@
                                     <body name="robot0:gripper_link" pos="0 0 0.185" quat="1 0 0 0">
                                         <!-- comment this line to not include the gripper -->
                                         <!-- <include file="gripper.xml" quat="0 0 0 1"></include> -->
-                                        <site name="robot0:grip" pos="0 0 0" rgba="0 1 0 .7" size="0.01 0.01 0.01" type="box"></site>
+                                        <site name="robot0:grip" pos="0 0 0" rgba="0 0 1 1" size="0.01 0.01 0.01" type="box"></site>
                                     </body>
                                 </body>
                             </body>

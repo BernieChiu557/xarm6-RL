@@ -50,7 +50,7 @@ xArm6ReachDenseNoDist-v1:
   policy_kwargs: "dict(net_arch=[64, 64])"
 
 xArm6ReachDenseDist-v1:
-  n_timesteps: !!float 20000
+  n_timesteps: !!float 30000
   policy: 'MultiInputPolicy'
   buffer_size: 1000000
   ent_coef: 'auto'

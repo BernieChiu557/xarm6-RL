@@ -68,7 +68,7 @@ def get_base_xarm6_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
             self.distance_threshold = distance_threshold
             self.reward_type = reward_type
             self.distraction = distraction
-            self.distraction_location = np.array([0.35, 0, 0])
+            self.distraction_location = np.array([0.5, -0.1, 0.1])
 
             super().__init__(n_actions=6, **kwargs)
 
@@ -78,7 +78,14 @@ def get_base_xarm6_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
         def compute_reward(self, achieved_goal, goal, info):
             # Compute distance between goal and the achieved goal.
             if self.distraction:
-                reward = -distance(achieved_goal, goal) + distance(achieved_goal, self.distraction_location)
+                if goal.shape != self.distraction_location.shape:
+                    distraction_location = np.stack([self.distraction_location for _ in range(len(goal))])
+                else:
+                    distraction_location = self.distraction_location
+
+                # print(achieved_goal.shape)
+                # print(distraction_location.shape)
+                reward = -distance(achieved_goal, goal) + distance(achieved_goal, distraction_location)
             else:
                 reward = -distance(achieved_goal, goal)
 
@@ -174,9 +181,11 @@ def get_base_xarm6_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
                 # goal = self.initial_gripper_xpos[:3] + self.np_random.uniform(
                 #     -self.target_range, self.target_range, size=3
                 # )
-                goal = np.array([0.4, 0, 0.05]) + self.np_random.uniform(
-                    -self.target_range, self.target_range, size=3
-                )
+                goal = np.array([0.5, 0.1, 0.1]) + np.array([
+                    self.np_random.uniform(-self.target_range, self.target_range, size=1)[0],
+                    self.np_random.uniform(-self.target_range, self.target_range, size=1)[0],
+                    0.
+                ])
                 # goal = np.array([
                 #     (0.7 * np.sqrt(np.random.uniform(0.2, 0.7, size=1)) * np.cos(np.random.uniform(-0.25*np.pi,0.25*np.pi, size=1)))[0],
                 #     (0.7 * np.sqrt(np.random.uniform(0.2, 0.7, size=1)) * np.sin(np.random.uniform(-0.25*np.pi,0.25*np.pi, size=1)))[0],
