@@ -3,12 +3,16 @@ from gymnasium.utils.ezpickle import EzPickle
 from gymnasium_xarm6.envs.xarm6_env import MujocoXarm6Env
 
 
-# Ensure we get the path separator correct on windows
-MODEL_XML_PATH = os.path.join('assets', 'reach.xml')
-fullpath = os.path.join(os.path.dirname(__file__), MODEL_XML_PATH)
-
 class xArm6ReachEnv(MujocoXarm6Env, EzPickle):
-    def __init__(self, reward_type: str = "sparse", **kwargs):
+    def __init__(self, reward_type: str = "sparse", distraction: bool = False, **kwargs):
+
+        # Ensure we get the path separator correct on windows
+        if distraction:
+            MODEL_XML_PATH = os.path.join('assets', 'reach_with_distraction.xml')
+        else:
+            MODEL_XML_PATH = os.path.join('assets', 'reach.xml')
+        fullpath = os.path.join(os.path.dirname(__file__), MODEL_XML_PATH)
+
         initial_qpos = {
             'robot0:slide0': 0.,
             'robot0:slide1': 0.,
@@ -29,5 +33,6 @@ class xArm6ReachEnv(MujocoXarm6Env, EzPickle):
             distance_threshold=0.02,
             initial_qpos=initial_qpos, 
             reward_type=reward_type,
+            distraction=distraction,
             **kwargs)
         EzPickle.__init__(self, reward_type=reward_type, **kwargs)

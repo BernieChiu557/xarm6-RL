@@ -14,7 +14,7 @@ DEFAULT_CAMERA_CONFIG = {
 }
 
 
-def goal_distance(goal_a, goal_b):
+def distance(goal_a, goal_b):
     assert goal_a.shape == goal_b.shape
     return np.linalg.norm(goal_a - goal_b, axis=-1)
 
@@ -38,6 +38,7 @@ def get_base_xarm6_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
             target_range,
             distance_threshold,
             reward_type,
+            distraction,
             **kwargs
         ):
             """Initializes a new Fetch environment.
@@ -66,7 +67,8 @@ def get_base_xarm6_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
             self.target_range = target_range
             self.distance_threshold = distance_threshold
             self.reward_type = reward_type
-            self.distraction = np.array([0.35, 0, 0])
+            self.distraction = distraction
+            self.distraction_location = np.array([0.35, 0, 0])
 
             super().__init__(n_actions=6, **kwargs)
 
@@ -75,12 +77,15 @@ def get_base_xarm6_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
 
         def compute_reward(self, achieved_goal, goal, info):
             # Compute distance between goal and the achieved goal.
-            d = goal_distance(achieved_goal, goal)
+            if self.distraction:
+                reward = -distance(achieved_goal, goal) + distance(achieved_goal, self.distraction_location)
+            else:
+                reward = -distance(achieved_goal, goal)
 
             if self.reward_type == "sparse":
-                return -(d > self.distance_threshold).astype(np.float32)
-            else:
-                return -d
+                return (reward > self.distance_threshold).astype(np.float32)
+            if self.reward_type == "dense":
+                return reward
 
         # RobotEnv methods
         # ----------------------------
@@ -179,7 +184,7 @@ def get_base_xarm6_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
             return goal.copy()
 
         def _is_success(self, achieved_goal, desired_goal):
-            d = goal_distance(achieved_goal, desired_goal)
+            d = distance(achieved_goal, desired_goal)
             return (d < self.distance_threshold).astype(np.float32)
 
     return BaseXarm6Env

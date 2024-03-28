@@ -6,15 +6,16 @@ def _merge(a, b):
 
 
 for reward_type in ['sparse', 'dense']:
-    suffix = 'Dense' if reward_type == 'dense' else ''
+    r_suffix = 'Dense' if reward_type == 'dense' else 'Sparse'
     kwargs = {
         'reward_type': reward_type,
     }
     for distraction in [True, False]:
         if distraction == True:
-            suffix += 'Dist' 
+            suffix = r_suffix + 'Dist' 
+        else:
+            suffix = r_suffix + 'NoDist' 
         kwargs['distraction'] = distraction
-
         register(
             id='xArm6Reach{}-v1'.format(suffix),
             entry_point='gymnasium_xarm6.envs:xArm6ReachEnv',
