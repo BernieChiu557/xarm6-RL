@@ -82,7 +82,6 @@ def get_base_xarm6_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
             # except:
             #     import ipdb; ipdb.set_trace()
             # grip_quat = info["grip_quat"]
-            # if grip_quat is not array type
 
             # quat_diff = grip_quat - rotations.quat_identity()
             if self.distraction:
@@ -132,32 +131,15 @@ def get_base_xarm6_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
         def _get_obs(self):
             (
                 grip_pos,
-                object_pos,
-                object_rel_pos,
-                gripper_state,
-                object_rot,
-                object_velp,
-                object_velr,
-                grip_velp,
-                gripper_vel,
+                grip_quat,
             ) = self.generate_mujoco_observations()
 
-            if not self.has_object:
-                achieved_goal = grip_pos.copy()
-            else:
-                achieved_goal = np.squeeze(object_pos.copy())
+            achieved_goal = grip_pos.copy()
 
             obs = np.concatenate(
                 [
                     grip_pos,
-                    object_pos.ravel(),
-                    object_rel_pos.ravel(),
-                    gripper_state,
-                    object_rot.ravel(),
-                    object_velp.ravel(),
-                    object_velr.ravel(),
-                    grip_velp,
-                    gripper_vel,
+                    grip_quat,
                 ]
             )
 
@@ -229,54 +211,13 @@ class MujocoXarm6Env(get_base_xarm6_env(MujocoRobotEnv)):
     def generate_mujoco_observations(self):
         # positions
         grip_pos = self._utils.get_site_xpos(self.model, self.data, "robot0:grip")
-        # grip_mat = self._utils.get_site_xmat(self.model, self.data, "robot0:grip")
-        # # turn mat to quat
-        # grip_quat = rotations.mat2quat(grip_mat)
-
-        dt = self.n_substeps * self.model.opt.timestep
-        grip_velp = (
-            self._utils.get_site_xvelp(self.model, self.data, "robot0:grip") * dt
-        )
-
-        robot_qpos, robot_qvel = self._utils.robot_get_obs(
-            self.model, self.data, self._model_names.joint_names
-        )
-        if self.has_object:
-            object_pos = self._utils.get_site_xpos(self.model, self.data, "object0")
-            # rotations
-            object_rot = rotations.mat2euler(
-                self._utils.get_site_xmat(self.model, self.data, "object0")
-            )
-            # velocities
-            object_velp = (
-                self._utils.get_site_xvelp(self.model, self.data, "object0") * dt
-            )
-            object_velr = (
-                self._utils.get_site_xvelr(self.model, self.data, "object0") * dt
-            )
-            # gripper state
-            object_rel_pos = object_pos - grip_pos
-            object_velp -= grip_velp
-        else:
-            object_pos = (
-                object_rot
-            ) = object_velp = object_velr = object_rel_pos = np.zeros(0)
-        gripper_state = robot_qpos[-2:]
-
-        gripper_vel = (
-            robot_qvel[-2:] * dt
-        )  # change to a scalar if the gripper is made symmetric
+        grip_mat = self._utils.get_site_xmat(self.model, self.data, "robot0:grip")
+        # turn mat to quat
+        grip_quat = rotations.mat2quat(grip_mat)
 
         return (
             grip_pos,
-            object_pos,
-            object_rel_pos,
-            gripper_state,
-            object_rot,
-            object_velp,
-            object_velr,
-            grip_velp,
-            gripper_vel,
+            grip_quat,
         )
 
     def _get_gripper_xpos(self):
