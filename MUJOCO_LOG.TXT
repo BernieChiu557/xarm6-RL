@@ -1,0 +1,6 @@
+Mon Apr  8 22:26:31 2024
+WARNING: mju_openResource: unknown file '/home/khai/miniconda3/envs/xarm/lib/python3.8/site-packages/gymnasium_xarm6/envs/assets/shared.xml'
+
+Mon Apr  8 22:30:22 2024
+WARNING: mju_openResource: unknown file '/home/khai/miniconda3/envs/xarm/lib/python3.8/site-packages/gymnasium_xarm6/envs/assets/xarm6.xml'
+

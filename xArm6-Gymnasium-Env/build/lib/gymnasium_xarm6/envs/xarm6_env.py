@@ -58,6 +58,7 @@ def get_base_xarm6_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
                 reward_type ('sparse' or 'dense'): the reward type, i.e. sparse or dense
             """
 
+            super().__init__(n_actions=6, **kwargs)
             self.gripper_extra_height = gripper_extra_height
             self.block_gripper = block_gripper
             self.has_object = has_object
@@ -70,21 +71,11 @@ def get_base_xarm6_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
             self.distraction = distraction
             self.distraction_location = np.array([0.5, -0.1, 0.1])
 
-            super().__init__(n_actions=6, **kwargs)
-
         # GoalEnv methods
         # ----------------------------
 
         def compute_reward(self, achieved_goal, goal, info):
             # Compute distance between goal and the achieved goal.
-            # try:
-            #     grip_quat = info["grip_quat"]
-            # except:
-            #     import ipdb; ipdb.set_trace()
-            # grip_quat = info["grip_quat"]
-            # if grip_quat is not array type
-
-            # quat_diff = grip_quat - rotations.quat_identity()
             if self.distraction:
                 if goal.shape != self.distraction_location.shape:
                     distraction_location = np.stack([self.distraction_location for _ in range(len(goal))])
@@ -95,7 +86,8 @@ def get_base_xarm6_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
                 # print(distraction_location.shape)
                 reward = -distance(achieved_goal, goal) + distance(achieved_goal, distraction_location)
             else:
-                reward = -distance(achieved_goal, goal)
+                reward = -distance(achieved_goal, goal) 
+
             if self.reward_type == "sparse":
                 return (reward > self.distance_threshold).astype(np.float32)
             if self.reward_type == "dense":
@@ -162,9 +154,9 @@ def get_base_xarm6_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
             )
 
             return {
-                "observation": obs,
-                "achieved_goal": achieved_goal,
-                "desired_goal": self.goal,
+                "observation": obs.copy(),
+                "achieved_goal": achieved_goal.copy(),
+                "desired_goal": self.goal.copy(),
             }
 
         def generate_mujoco_observations(self):
@@ -229,9 +221,6 @@ class MujocoXarm6Env(get_base_xarm6_env(MujocoRobotEnv)):
     def generate_mujoco_observations(self):
         # positions
         grip_pos = self._utils.get_site_xpos(self.model, self.data, "robot0:grip")
-        # grip_mat = self._utils.get_site_xmat(self.model, self.data, "robot0:grip")
-        # # turn mat to quat
-        # grip_quat = rotations.mat2quat(grip_mat)
 
         dt = self.n_substeps * self.model.opt.timestep
         grip_velp = (
