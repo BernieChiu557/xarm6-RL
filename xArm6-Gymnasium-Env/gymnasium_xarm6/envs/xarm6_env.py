@@ -18,6 +18,13 @@ def distance(goal_a, goal_b):
     assert goal_a.shape == goal_b.shape
     return np.linalg.norm(goal_a - goal_b, axis=-1)
 
+def naive_legibility(achieved_goal, goal, distraction_location):
+    return -distance(achieved_goal, goal) + distance(achieved_goal, distraction_location)
+
+def zhao_legibility(achieved_goal, goal, distraction_location, t=0, omega=1):
+    d_goal = distance(achieved_goal, goal)
+    d_dist = distance(achieved_goal, distraction_location)
+    return - d_goal + omega * np.exp(-t/30) * np.log(np.abs(d_goal - d_dist) / (d_goal + 1) + 1 ) * np.sign(d_dist - d_goal)
 
 def get_base_xarm6_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
     """Factory function that returns a BaseFetchEnv class that inherits
@@ -78,14 +85,16 @@ def get_base_xarm6_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
         def compute_reward(self, achieved_goal, goal, info):
             # Compute distance between goal and the achieved goal.
             if self.distraction:
+
+                # somehow after some update, the env would pass ~200 achieved_goal and goal into this function at once, so we need to multiply distraction at this case
                 if goal.shape != self.distraction_location.shape:
                     distraction_location = np.stack([self.distraction_location for _ in range(len(goal))])
                 else:
                     distraction_location = self.distraction_location
 
-                # print(achieved_goal.shape)
-                # print(distraction_location.shape)
-                reward = -distance(achieved_goal, goal) + distance(achieved_goal, distraction_location)
+                # reward = naive_legibility(achieved_goal, goal, distraction_location)
+                reward = zhao_legibility(achieved_goal, goal, distraction_location)
+            
             else:
                 reward = -distance(achieved_goal, goal)
 
@@ -133,6 +142,7 @@ def get_base_xarm6_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
                 object_velr,
                 grip_velp,
                 gripper_vel,
+                distraction_pos,
             ) = self.generate_mujoco_observations()
 
             if not self.has_object:
@@ -151,6 +161,7 @@ def get_base_xarm6_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
                     object_velr.ravel(),
                     grip_velp,
                     gripper_vel,
+                    distraction_pos.ravel()
                 ]
             )
 
@@ -251,6 +262,12 @@ class MujocoXarm6Env(get_base_xarm6_env(MujocoRobotEnv)):
             object_pos = (
                 object_rot
             ) = object_velp = object_velr = object_rel_pos = np.zeros(0)
+
+        if self.distraction:
+            distraction_pos = self._utils.get_site_xpos(self.model, self.data, "distraction0")
+        else:
+            distraction_pos = np.zeros(0)
+
         gripper_state = robot_qpos[-2:]
 
         gripper_vel = (
@@ -267,6 +284,7 @@ class MujocoXarm6Env(get_base_xarm6_env(MujocoRobotEnv)):
             object_velr,
             grip_velp,
             gripper_vel,
+            distraction_pos,
         )
 
     def _get_gripper_xpos(self):
