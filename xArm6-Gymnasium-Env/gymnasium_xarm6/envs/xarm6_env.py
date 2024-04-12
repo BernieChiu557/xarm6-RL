@@ -105,7 +105,7 @@ def get_base_xarm6_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
 
         def _set_action(self, action):
             assert action.shape == (6,)
-            action = action.copy()
+            action = 0.1 * action.copy()
             return action
         
             # assert action.shape == (4,)
@@ -115,7 +115,7 @@ def get_base_xarm6_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
             # pos_ctrl, gripper_ctrl = action[:3], action[3]
             # pos_ctrl *= 0.02  # limit maximum change in position
             # rot_ctrl = [
-            #     0.0,
+            #     1.0,
             #     0.0,
             #     0.0,
             #     0.0,
@@ -126,12 +126,14 @@ def get_base_xarm6_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
             #     gripper_ctrl = np.zeros_like(gripper_ctrl)
             # action = np.concatenate([pos_ctrl, rot_ctrl, gripper_ctrl])
 
-            # return action
+            return action
 
         def _get_obs(self):
             (
                 grip_pos,
                 grip_quat,
+                grip_velp,
+                grip_velr
             ) = self.generate_mujoco_observations()
 
             achieved_goal = grip_pos.copy()
@@ -140,6 +142,8 @@ def get_base_xarm6_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
                 [
                     grip_pos,
                     grip_quat,
+                    grip_velp,
+                    grip_velr
                 ]
             )
 
@@ -198,8 +202,9 @@ class MujocoXarm6Env(get_base_xarm6_env(MujocoRobotEnv)):
             # self._utils.set_joint_qpos(
             #     self.model, self.data, "robot0:r_gripper_finger_joint", 0.0
             # )
-            self.sim.data.set_joint_qpos('robot0:wrist_roll_joint', 0.)
-            self._mujoco.mj_forward(self.model, self.data)
+            # self.sim.data.set_joint_qpos('robot0:wrist_roll_joint', 0.)
+            # self._mujoco.mj_forward(self.model, self.data)
+            pass
 
     def _set_action(self, action):
         action = super()._set_action(action)
@@ -214,10 +219,21 @@ class MujocoXarm6Env(get_base_xarm6_env(MujocoRobotEnv)):
         grip_mat = self._utils.get_site_xmat(self.model, self.data, "robot0:grip")
         # turn mat to quat
         grip_quat = rotations.mat2quat(grip_mat)
-
+        dt = self.n_substeps * self.model.opt.timestep
+        grip_velp = (
+            self._utils.get_site_xvelp(self.model, self.data, "robot0:grip") * dt
+        )
+        grip_velr = (
+            self._utils.get_site_xvelr(self.model, self.data, "robot0:grip") * dt
+        )
+        robot_qpos, robot_qvel = self._utils.robot_get_obs(
+            self.model, self.data, self._model_names.joint_names
+        )
         return (
             grip_pos,
             grip_quat,
+            grip_velp,
+            grip_velr
         )
 
     def _get_gripper_xpos(self):

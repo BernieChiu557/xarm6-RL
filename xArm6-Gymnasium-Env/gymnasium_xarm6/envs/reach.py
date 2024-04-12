@@ -25,7 +25,7 @@ class xArm6ReachEnv(MujocoXarm6Env, EzPickle):
             self, 
             model_path=fullpath, 
             has_object=False, 
-            block_gripper=False, 
+            block_gripper=True, 
             # n_substeps=30,
             n_substeps=20,
             gripper_extra_height=0.0, 

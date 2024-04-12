@@ -39,7 +39,7 @@ xArm6ReachDenseNoDist-v1:
   ent_coef: 'auto'
   batch_size: 512
   gamma: 0.95
-  learning_rate: 0.005
+  learning_rate: 0.003
   learning_starts: 1000
   normalize: True
   replay_buffer_class: HerReplayBuffer
