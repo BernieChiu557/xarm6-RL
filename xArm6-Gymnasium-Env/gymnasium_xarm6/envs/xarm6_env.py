@@ -76,27 +76,26 @@ def get_base_xarm6_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
         # ----------------------------
 
         def compute_reward(self, achieved_goal, goal, info):
-            # Compute distance between goal and the achieved goal.
-            # try:
-            #     grip_quat = info["grip_quat"]
-            # except:
-            #     import ipdb; ipdb.set_trace()
-            # grip_quat = info["grip_quat"]
-
-            # quat_diff = grip_quat - rotations.quat_identity()
+            grip_pos, grip_quat = achieved_goal[...,:3], achieved_goal[...,3:]
+            desired_pos, desired_quat = goal[...,:3], goal[...,3:]
+            attitude_error = rotations.quat_mul(rotations.quat_conjugate(grip_quat), desired_quat)
+            # attitude_error = rotations.quat_identity()
+            rot_error = np.abs(2 * np.arccos(np.clip(attitude_error[...,0], -1., 1.)))
+            # import pdb; pdb.set_trace()
+            d = distance(grip_pos, desired_pos) 
             if self.distraction:
                 if goal.shape != self.distraction_location.shape:
                     distraction_location = np.stack([self.distraction_location for _ in range(len(goal))])
                 else:
                     distraction_location = self.distraction_location
 
-                # print(achieved_goal.shape)
+                # print(grip_pos.shape)
                 # print(distraction_location.shape)
-                reward = -distance(achieved_goal, goal) + distance(achieved_goal, distraction_location)
+                reward = -d + distance(grip_pos, distraction_location)
             else:
-                reward = -distance(achieved_goal, goal)
+                reward = -d - 0.0*rot_error
             if self.reward_type == "sparse":
-                return (reward > self.distance_threshold).astype(np.float32)
+                return (d < self.distance_threshold and rot_error < np.pi/9).astype(np.float32)
             if self.reward_type == "dense":
                 return reward
 
@@ -105,7 +104,7 @@ def get_base_xarm6_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
 
         def _set_action(self, action):
             assert action.shape == (6,)
-            action = 0.1 * action.copy()
+            action = action.copy()
             return action
         
             # assert action.shape == (4,)
@@ -136,7 +135,7 @@ def get_base_xarm6_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
                 grip_velr
             ) = self.generate_mujoco_observations()
 
-            achieved_goal = grip_pos.copy()
+            achieved_goal = np.concatenate((grip_pos.copy(), grip_quat.copy()))
 
             obs = np.concatenate(
                 [
@@ -183,11 +182,17 @@ def get_base_xarm6_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
                 #     (0.7 * np.sqrt(np.random.uniform(0.2, 0.7, size=1)) * np.cos(np.random.uniform(-0.25*np.pi,0.25*np.pi, size=1)))[0],
                 #     (0.7 * np.sqrt(np.random.uniform(0.2, 0.7, size=1)) * np.sin(np.random.uniform(-0.25*np.pi,0.25*np.pi, size=1)))[0],
                 #     (np.random.uniform(-0.16, 0.5, size=1))[0]])
-            return goal.copy()
+            return np.concatenate((goal.copy(), np.zeros(4)))#rotations.quat_identity()))
 
         def _is_success(self, achieved_goal, desired_goal):
-            d = distance(achieved_goal, desired_goal)
-            return (d < self.distance_threshold).astype(np.float32)
+            grip_pos, grip_quat = achieved_goal[...,:3], achieved_goal[...,3:]
+            desired_pos, desired_quat = desired_goal[...,:3], desired_goal[...,3:]
+            d = distance(grip_pos, desired_pos)
+            attitude_error = rotations.quat_mul(grip_quat, rotations.quat_conjugate(desired_quat))
+            # import pdb; pdb.set_trace()
+            rot_error = np.abs(2 * np.arccos(np.clip(attitude_error[...,0], -1., 1.)))
+            success = (d < self.distance_threshold).astype(np.float32) # and (rot_error < np.pi / 9).astype(np.float32)
+            return success
 
     return BaseXarm6Env
 class MujocoXarm6Env(get_base_xarm6_env(MujocoRobotEnv)):
