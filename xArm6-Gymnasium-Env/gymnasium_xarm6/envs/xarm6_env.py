@@ -275,6 +275,11 @@ class MujocoXarm6Env(get_base_xarm6_env(MujocoRobotEnv)):
             self.model, self._mujoco.mjtObj.mjOBJ_SITE, "target0"
         )
         self.model.site_pos[site_id] = self.goal[..., :3] - sites_offset[0]
+        site_id = self._mujoco.mj_name2id(
+            self.model, self._mujoco.mjtObj.mjOBJ_SITE, "distraction0"
+        )
+        self.model.site_pos[site_id] = self.goal[..., 7:10] - sites_offset[0]
+
         self._mujoco.mj_forward(self.model, self.data)
 
     def _reset_sim(self):
