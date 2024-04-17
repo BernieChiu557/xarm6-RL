@@ -76,28 +76,24 @@ def get_base_xarm6_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
         # ----------------------------
 
         def compute_reward(self, achieved_goal, goal, info):
-            grip_pos, grip_quat = achieved_goal[...,
-                                                :3], achieved_goal[..., 3:7]
-            desired_pos, desired_quat = goal[..., :3], goal[..., 3:7]
-            _distraction_pos = goal[..., 7:]
+            grip_pos, grip_quat = achieved_goal[...,:3], achieved_goal[..., 3:7]
+            desired_pos, desired_quat, distraction_pos = goal[..., :3], goal[..., 3:7], goal[..., 7:10]
             attitude_error = rotations.quat_mul(
                 rotations.quat_conjugate(grip_quat), desired_quat)
             # attitude_error = rotations.quat_identity()
             rot_error = np.abs(
                 2 * np.arccos(np.clip(attitude_error[..., 0], -1., 1.)))
             # import pdb; pdb.set_trace()
-            d = distance(grip_pos, desired_pos)
+            d_goal = distance(grip_pos, desired_pos)
             if self.distraction:
-                if desired_pos.shape != _distraction_pos.shape:
-                    distraction_pos = np.stack(
-                        [_distraction_pos for _ in range(len(desired_pos))])
-                else:
-                    distraction_pos = _distraction_pos
-                reward = -d + 0.5*distance(grip_pos, distraction_pos)
+                try:
+                    reward = -d_goal + 0.3 * distance(grip_pos, distraction_pos) - 0.3*rot_error
+                except:
+                    import ipdb; ipdb.set_trace()
             else:
-                reward = -d - 1.0*rot_error
+                reward = -d_goal - 1.0*rot_error
             if self.reward_type == "sparse":
-                return (d < self.distance_threshold and rot_error < np.pi/9).astype(np.float32)
+                return (d_goal < self.distance_threshold and rot_error < np.pi/9).astype(np.float32)
             if self.reward_type == "dense":
                 return reward
 
@@ -140,7 +136,7 @@ def get_base_xarm6_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
             ) = self.generate_mujoco_observations()
 
             achieved_goal = np.concatenate(
-                (grip_pos.copy(), grip_quat.copy(), self.goal[..., 7:]))
+                (grip_pos.copy(), grip_quat.copy(), self.goal[7:10]))
 
             obs = np.concatenate(
                 [
@@ -179,31 +175,30 @@ def get_base_xarm6_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
                 #     -self.target_range, self.target_range, size=3
                 # )
                 goal = np.array([0.5, 0.1, 0.1]) + np.array([
-                    self.np_random.uniform(-self.target_range,
+                    2*self.np_random.uniform(-self.target_range,
                                            self.target_range, size=1)[0],
                     self.np_random.uniform(-self.target_range,
                                            self.target_range, size=1)[0],
                     0,
                 ])
                 distraction_pos = np.array([0.5, -0.1, 0.1]) + np.array([
-                    self.np_random.uniform(-self.target_range,
+                    2*self.np_random.uniform(-self.target_range,
                                            self.target_range, size=1)[0],
                     self.np_random.uniform(-self.target_range,
                                            self.target_range, size=1)[0],
                     0,
                 ])
+                # distraction_pos = np.array([0.5, -0.1, 0.1])
                 # goal = np.array([
                 #     (0.7 * np.sqrt(np.random.uniform(0.2, 0.7, size=1)) * np.cos(np.random.uniform(-0.25*np.pi,0.25*np.pi, size=1)))[0],
                 #     (0.7 * np.sqrt(np.random.uniform(0.2, 0.7, size=1)) * np.sin(np.random.uniform(-0.25*np.pi,0.25*np.pi, size=1)))[0],
                 #     (np.random.uniform(-0.16, 0.5, size=1))[0]])
             # rotations.quat_identity()))
-            return np.concatenate((goal.copy(), self.initial_gripper_xquat, distraction_pos))
+            return np.concatenate((goal, self.initial_gripper_xquat, distraction_pos))
 
-        def _is_success(self, achieved_goal, desired_goal):
-            grip_pos, grip_quat = achieved_goal[...,
-                                                :3], achieved_goal[..., 3:7]
-            desired_pos, desired_quat = desired_goal[...,
-                                                     :3], desired_goal[..., 3:7]
+        def _is_success(self, achieved_goal, goal):
+            grip_pos, grip_quat = achieved_goal[...,:3], achieved_goal[..., 3:7]
+            desired_pos, desired_quat, distraction_pos = goal[..., :3], goal[..., 3:7], goal[..., 7:10]
             d = distance(grip_pos, desired_pos)
             attitude_error = rotations.quat_mul(
                 grip_quat, rotations.quat_conjugate(desired_quat))
@@ -211,7 +206,7 @@ def get_base_xarm6_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
             rot_error = np.abs(
                 2 * np.arccos(np.clip(attitude_error[..., 0], -1., 1.)))
             success = (d < self.distance_threshold).astype(
-                np.float32) and (rot_error < np.pi / 9).astype(np.float32)
+                np.float32)  # and (rot_error < np.pi / 9).astype(np.float32)
             return success
 
     return BaseXarm6Env
@@ -265,8 +260,8 @@ class MujocoXarm6Env(get_base_xarm6_env(MujocoRobotEnv)):
             grip_quat,
             grip_velp,
             grip_velr,
-            robot_qpos,
-            robot_qvel,
+            robot_qpos[...,:6],
+            robot_qvel[...,:6],
         )
 
     def _get_gripper_xpos(self):
