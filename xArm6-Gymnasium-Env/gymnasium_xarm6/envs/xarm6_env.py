@@ -21,10 +21,15 @@ def distance(goal_a, goal_b):
 def naive_legibility(achieved_goal, goal, distraction_location):
     return -distance(achieved_goal, goal) + distance(achieved_goal, distraction_location)
 
-def zhao_legibility(achieved_goal, goal, distraction_location, t=0, omega=1):
+# def zhao_legibility(achieved_goal, goal, distraction_location, t=0, omega=1):
+#     d_goal = distance(achieved_goal, goal)
+#     d_dist = distance(achieved_goal, distraction_location)
+#     return - d_goal + omega * np.exp(-t/30) * np.log(np.abs(d_goal - d_dist) / (d_goal + 1) + 1 ) * np.sign(d_dist - d_goal)
+
+def zhao_legibility(achieved_goal, goal, distraction_location, t=0, omega=20):
     d_goal = distance(achieved_goal, goal)
     d_dist = distance(achieved_goal, distraction_location)
-    return - d_goal + omega * np.exp(-t/30) * np.log(np.abs(d_goal - d_dist) / (d_goal + 1) + 1 ) * np.sign(d_dist - d_goal)
+    return omega * np.exp(-t/30) * np.log(np.abs(d_goal - d_dist) / (d_goal + 1) + 1 ) * np.sign(d_dist - d_goal)
 
 def get_base_xarm6_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
     """Factory function that returns a BaseFetchEnv class that inherits
@@ -82,10 +87,34 @@ def get_base_xarm6_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
         # GoalEnv methods
         # ----------------------------
 
+        # def compute_reward(self, achieved_goal, goal, info):
+        #     # Compute distance between goal and the achieved goal.
+        #     if self.distraction:
+
+        #         # somehow after some update, the env would pass ~200 achieved_goal and goal into this function at once, so we need to multiply distraction at this case
+        #         if goal.shape != self.distraction_location.shape:
+        #             distraction_location = np.stack([self.distraction_location for _ in range(len(goal))])
+        #         else:
+        #             distraction_location = self.distraction_location
+
+        #         # reward = naive_legibility(achieved_goal, goal, distraction_location)
+        #         reward = zhao_legibility(achieved_goal, goal, distraction_location)
+            
+        #     else:
+        #         reward = -distance(achieved_goal, goal)
+
+        #     if self.reward_type == "sparse":
+        #         return (reward > self.distance_threshold).astype(np.float32)
+        #     if self.reward_type == "dense":
+        #         return reward
+        
         def compute_reward(self, achieved_goal, goal, info):
             # Compute distance between goal and the achieved goal.
+            r_task = -distance(achieved_goal, goal)
+            if self.reward_type == "sparse":
+                r_task =  -300 * (np.abs(r_task) > self.distance_threshold).astype(np.float32)
+            
             if self.distraction:
-
                 # somehow after some update, the env would pass ~200 achieved_goal and goal into this function at once, so we need to multiply distraction at this case
                 if goal.shape != self.distraction_location.shape:
                     distraction_location = np.stack([self.distraction_location for _ in range(len(goal))])
@@ -93,15 +122,13 @@ def get_base_xarm6_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
                     distraction_location = self.distraction_location
 
                 # reward = naive_legibility(achieved_goal, goal, distraction_location)
-                reward = zhao_legibility(achieved_goal, goal, distraction_location)
-            
+                r_leg = zhao_legibility(achieved_goal, goal, distraction_location)
             else:
-                reward = -distance(achieved_goal, goal)
+                r_leg = 0
+            
+            return r_task + r_leg
 
-            if self.reward_type == "sparse":
-                return (reward > self.distance_threshold).astype(np.float32)
-            if self.reward_type == "dense":
-                return reward
+            
 
         # RobotEnv methods
         # ----------------------------
