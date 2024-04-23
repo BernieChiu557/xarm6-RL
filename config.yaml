@@ -65,3 +65,20 @@ xArm6ReachDenseDist-v1:
     n_sampled_goal=4
   )"
   policy_kwargs: "dict(net_arch=[128, 128])"
+
+xArm6ReachDenseDistView-v1:
+  n_timesteps: !!float 200000
+  policy: 'MultiInputPolicy'
+  buffer_size: 1000000
+  ent_coef: 'auto'
+  batch_size: 256
+  gamma: 0.95
+  learning_rate: 0.003
+  learning_starts: 1000
+  normalize: True
+  replay_buffer_class: HerReplayBuffer
+  replay_buffer_kwargs: "dict(
+    goal_selection_strategy='future',
+    n_sampled_goal=4
+  )"
+  policy_kwargs: "dict(net_arch=[128, 128])"

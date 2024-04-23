@@ -16,8 +16,33 @@ DEFAULT_CAMERA_CONFIG = {
 }
 
 
-def distance(goal_a, goal_b):
+def distance(goal_a, goal_b, view=0, enable_view=False):
     assert goal_a.shape == goal_b.shape
+    if enable_view:
+        if view.shape == ():
+            view = int(view)
+            if view == 0:
+                goal_a = goal_a[[0, 2]]
+                goal_b = goal_b[[0, 2]]
+            elif view == 1:
+                goal_a = goal_a[[0, 1]]
+                goal_b = goal_b[[0, 1]]
+            else:
+                raise ValueError('wrong view number, 0 for sideview and 1 for top view')
+        else:
+            view = view + 1
+            view = view.astype(int)
+            view = view.reshape(-1, 1)
+
+            rows = np.arange(len(view)).reshape(-1, 1)
+            mask = np.ones([len(view), 3])
+            mask[rows, view] = False
+            mask = mask.astype(bool)
+
+            goal_a = goal_a[mask].reshape(-1, 2)
+            goal_b = goal_b[mask].reshape(-1, 2)
+            
+        
     return np.linalg.norm(goal_a - goal_b, axis=-1)
 
 
@@ -88,7 +113,7 @@ def get_base_xarm6_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
 
         def compute_reward(self, achieved_goal, goal, info):
             grip_pos, grip_quat = achieved_goal[...,:3], achieved_goal[..., 3:7]
-            desired_pos, desired_quat, distraction_pos = goal[..., :3], goal[..., 3:7], goal[..., 7:10]
+            desired_pos, desired_quat, distraction_pos, view, = goal[..., :3], goal[..., 3:7], goal[..., 7:10], goal[..., 10]
             attitude_error = rotations.quat_mul(
                 rotations.quat_conjugate(grip_quat), desired_quat)
             # attitude_error = rotations.quat_identity()
@@ -97,10 +122,7 @@ def get_base_xarm6_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
             # import pdb; pdb.set_trace()
             d_goal = distance(grip_pos, desired_pos)
             if self.distraction:
-                try:
-                    reward = -d_goal + 0.3 * distance(grip_pos, distraction_pos) - 0.3*rot_error
-                except:
-                    import ipdb; ipdb.set_trace()
+                reward = -d_goal + 0.3 * distance(grip_pos, distraction_pos, view, enable_view=self.viewpoint) - 0.3*rot_error
             else:
                 reward = -d_goal - 1.0*rot_error
             if self.reward_type == "sparse":
@@ -116,26 +138,6 @@ def get_base_xarm6_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
             action = action.copy()
             return action
 
-            # assert action.shape == (4,)
-            # action = (
-            #     action.copy()
-            # )  # ensure that we don't change the action outside of this scope
-            # pos_ctrl, gripper_ctrl = action[:3], action[3]
-            # pos_ctrl *= 0.02  # limit maximum change in position
-            # rot_ctrl = [
-            #     1.0,
-            #     0.0,
-            #     0.0,
-            #     0.0,
-            # ]  # fixed rotation of the end effector, expressed as a quaternion
-            # gripper_ctrl = np.array([gripper_ctrl, gripper_ctrl])
-            # assert gripper_ctrl.shape == (2,)
-            # if self.block_gripper:
-            #     gripper_ctrl = np.zeros_like(gripper_ctrl)
-            # action = np.concatenate([pos_ctrl, rot_ctrl, gripper_ctrl])
-
-            return action
-
         def _get_obs(self):
             (
                 grip_pos,
@@ -147,7 +149,7 @@ def get_base_xarm6_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
             ) = self.generate_mujoco_observations()
 
             achieved_goal = np.concatenate(
-                (grip_pos.copy(), grip_quat.copy(), self.goal[7:10]))
+                (grip_pos.copy(), grip_quat.copy(), self.goal[7:]))
 
             obs = np.concatenate(
                 [
@@ -201,24 +203,26 @@ def get_base_xarm6_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
                                                 self.target_range, size=1)[0],
                             0,
                         ])
-                        # distraction_pos = np.array([0.5, -0.1, 0.1])
-                        # goal = np.array([
-                        #     (0.7 * np.sqrt(np.random.uniform(0.2, 0.7, size=1)) * np.cos(np.random.uniform(-0.25*np.pi,0.25*np.pi, size=1)))[0],
-                        #     (0.7 * np.sqrt(np.random.uniform(0.2, 0.7, size=1)) * np.sin(np.random.uniform(-0.25*np.pi,0.25*np.pi, size=1)))[0],
-                        #     (np.random.uniform(-0.16, 0.5, size=1))[0]])
-                    # rotations.quat_identity()))
-                    return np.concatenate((goal, self.initial_gripper_xquat, distraction_pos))
+
+                    if self.viewpoint:
+                        view = np.random.randint(2, size=1).astype(np.float64)
+                    else:
+                        view = np.array([0.])
+                    return np.concatenate((goal, self.initial_gripper_xquat, distraction_pos, view))
                 
                 return _sample_goal
             
+            # side demo
             if fn_type == 'demo1':
                 def _sample_goal():
                     goal = np.array([0.6, 0.0, 0.1])
                     distraction_pos = np.array([0.4, 0.0, 0.0])
-                    return np.concatenate((goal, self.initial_gripper_xquat, distraction_pos))
+                    view = np.array([0.])
+                    return np.concatenate((goal, self.initial_gripper_xquat, distraction_pos, view))
                 
                 return _sample_goal
             
+            "top demo"
             if fn_type == 'demo2':
                 raise NotImplementedError('demo 2 not yet implemented')
                 

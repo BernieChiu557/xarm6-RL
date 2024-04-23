@@ -26,6 +26,8 @@ class xArm6ReachEnv(MujocoXarm6Env, EzPickle):
             'robot0:slide1': 0.,
             'robot0:slide2': 0.,
         }
+
+        print(f'enable viewpoint: {viewpoint}')
         MujocoXarm6Env.__init__(
             self, 
             model_path=fullpath, 
