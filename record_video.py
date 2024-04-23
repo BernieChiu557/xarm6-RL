@@ -150,6 +150,8 @@ if __name__ == "__main__":
         video_folder = os.path.join(log_path, "videos")
 
     # Note: apparently it renders by default
+    if 'sample_type' in env_kwargs.keys():
+        name_prefix = env_kwargs['sample_type'] + name_prefix
     env = VecVideoRecorder(
         env,
         video_folder,

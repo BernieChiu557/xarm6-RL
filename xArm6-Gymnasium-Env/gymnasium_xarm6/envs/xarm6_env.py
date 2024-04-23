@@ -6,9 +6,11 @@ from gymnasium_robotics.envs.robot_env import MujocoPyRobotEnv, MujocoRobotEnv
 from gymnasium_robotics.utils import rotations
 
 DEFAULT_CAMERA_CONFIG = {
+    # normal
     "distance": 2.5,
     "azimuth": 132.0,
     "elevation": -14.0,
+
     # "lookat": np.array([1.3, 0.75, 0.55]),
     "lookat": np.array([0.076010, 0.068771, 0.004339]),
 }
@@ -39,6 +41,7 @@ def get_base_xarm6_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
             distance_threshold,
             reward_type,
             distraction,
+            viewpoint,
             **kwargs
         ):
             """Initializes a new Fetch environment.
@@ -68,7 +71,15 @@ def get_base_xarm6_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
             self.distance_threshold = distance_threshold
             self.reward_type = reward_type
             self.distraction = distraction
-            # self.distraction_pos = np.array([0.5, -0.1, 0.1])
+            self.viewpoint = viewpoint
+
+            if 'sample_type' in kwargs.keys():
+                sample_type = kwargs.pop('sample_type')
+            else:
+                sample_type = 'random'
+            
+            print(f'sample goal function type: {sample_type}')
+            self._sample_goal = self.sample_goal_fn(fn_type=sample_type)
 
             super().__init__(n_actions=6, **kwargs)
 
@@ -161,40 +172,57 @@ def get_base_xarm6_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
 
             raise NotImplementedError
 
-        def _sample_goal(self):
-            if self.has_object:
-                goal = self.initial_gripper_xpos[:3] + self.np_random.uniform(
-                    -self.target_range, self.target_range, size=3
-                )
-                goal += self.target_offset
-                goal[2] = self.height_offset
-                if self.target_in_the_air and self.np_random.uniform() < 0.5:
-                    goal[2] += self.np_random.uniform(0, 0.45)
-            else:
-                # goal = self.initial_gripper_xpos[:3] + self.np_random.uniform(
-                #     -self.target_range, self.target_range, size=3
-                # )
-                goal = np.array([0.5, 0.1, 0.1]) + np.array([
-                    2*self.np_random.uniform(-self.target_range,
-                                           self.target_range, size=1)[0],
-                    self.np_random.uniform(-self.target_range,
-                                           self.target_range, size=1)[0],
-                    0,
-                ])
-                distraction_pos = np.array([0.5, -0.1, 0.1]) + np.array([
-                    2*self.np_random.uniform(-self.target_range,
-                                           self.target_range, size=1)[0],
-                    self.np_random.uniform(-self.target_range,
-                                           self.target_range, size=1)[0],
-                    0,
-                ])
-                # distraction_pos = np.array([0.5, -0.1, 0.1])
-                # goal = np.array([
-                #     (0.7 * np.sqrt(np.random.uniform(0.2, 0.7, size=1)) * np.cos(np.random.uniform(-0.25*np.pi,0.25*np.pi, size=1)))[0],
-                #     (0.7 * np.sqrt(np.random.uniform(0.2, 0.7, size=1)) * np.sin(np.random.uniform(-0.25*np.pi,0.25*np.pi, size=1)))[0],
-                #     (np.random.uniform(-0.16, 0.5, size=1))[0]])
-            # rotations.quat_identity()))
-            return np.concatenate((goal, self.initial_gripper_xquat, distraction_pos))
+        def sample_goal_fn(self, fn_type='random'):
+            if fn_type == 'random':
+                def _sample_goal():
+                    if self.has_object:
+                        goal = self.initial_gripper_xpos[:3] + self.np_random.uniform(
+                            -self.target_range, self.target_range, size=3
+                        )
+                        goal += self.target_offset
+                        goal[2] = self.height_offset
+                        if self.target_in_the_air and self.np_random.uniform() < 0.5:
+                            goal[2] += self.np_random.uniform(0, 0.45)
+                    else:
+                        # goal = self.initial_gripper_xpos[:3] + self.np_random.uniform(
+                        #     -self.target_range, self.target_range, size=3
+                        # )
+                        goal = np.array([0.5, 0.1, 0.1]) + np.array([
+                            2*self.np_random.uniform(-self.target_range,
+                                                self.target_range, size=1)[0],
+                            self.np_random.uniform(-self.target_range,
+                                                self.target_range, size=1)[0],
+                            0,
+                        ])
+                        distraction_pos = np.array([0.5, -0.1, 0.1]) + np.array([
+                            2*self.np_random.uniform(-self.target_range,
+                                                self.target_range, size=1)[0],
+                            self.np_random.uniform(-self.target_range,
+                                                self.target_range, size=1)[0],
+                            0,
+                        ])
+                        # distraction_pos = np.array([0.5, -0.1, 0.1])
+                        # goal = np.array([
+                        #     (0.7 * np.sqrt(np.random.uniform(0.2, 0.7, size=1)) * np.cos(np.random.uniform(-0.25*np.pi,0.25*np.pi, size=1)))[0],
+                        #     (0.7 * np.sqrt(np.random.uniform(0.2, 0.7, size=1)) * np.sin(np.random.uniform(-0.25*np.pi,0.25*np.pi, size=1)))[0],
+                        #     (np.random.uniform(-0.16, 0.5, size=1))[0]])
+                    # rotations.quat_identity()))
+                    return np.concatenate((goal, self.initial_gripper_xquat, distraction_pos))
+                
+                return _sample_goal
+            
+            if fn_type == 'demo1':
+                def _sample_goal():
+                    goal = np.array([0.6, 0.0, 0.1])
+                    distraction_pos = np.array([0.4, 0.0, 0.0])
+                    return np.concatenate((goal, self.initial_gripper_xquat, distraction_pos))
+                
+                return _sample_goal
+            
+            if fn_type == 'demo2':
+                raise NotImplementedError('demo 2 not yet implemented')
+                
+            raise ValueError('wrong sample_type')
 
         def _is_success(self, achieved_goal, goal):
             grip_pos, grip_quat = achieved_goal[...,:3], achieved_goal[..., 3:7]
@@ -214,6 +242,21 @@ def get_base_xarm6_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
 
 class MujocoXarm6Env(get_base_xarm6_env(MujocoRobotEnv)):
     def __init__(self, default_camera_config: dict = DEFAULT_CAMERA_CONFIG, **kwargs):
+
+        if 'sample_type' in kwargs.keys():
+            if kwargs['sample_type'] == 'demo1':
+                default_camera_config = {
+                    "distance": 1.7,
+                    "azimuth": 90.0,
+                    "elevation": 0.0,
+
+                    "lookat": np.array([0.076010, 0.068771, 0.004339]),
+                }
+            elif kwargs['sample_type'] == 'demo2':
+                raise NotImplementedError('demo 2 camera config not yet implemented')
+            else:
+                raise ValueError('wrong sample_type')
+
         super().__init__(default_camera_config=default_camera_config, **kwargs)
 
     def _step_callback(self):

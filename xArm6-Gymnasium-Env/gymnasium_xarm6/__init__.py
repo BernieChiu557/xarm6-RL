@@ -44,6 +44,19 @@ register(
     max_episode_steps=100,
 )
 
+kwargs = {
+    'reward_type': 'dense',
+    'distraction': True,
+    'viewpoint': True
+}
+register(
+    id='xArm6Reach{}-v1'.format('DenseDistView'),
+    entry_point='gymnasium_xarm6.envs:xArm6ReachEnv',
+    kwargs=kwargs,
+    max_episode_steps=100,
+)
+
+
 # for reward_type in ['sparse', 'dense']:
 #     r_suffix = 'Dense' if reward_type == 'dense' else 'Sparse'
 #     kwargs['reward_type'] = reward_type

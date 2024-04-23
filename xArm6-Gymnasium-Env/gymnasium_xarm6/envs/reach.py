@@ -4,7 +4,12 @@ from gymnasium_xarm6.envs.xarm6_env import MujocoXarm6Env
 
 
 class xArm6ReachEnv(MujocoXarm6Env, EzPickle):
-    def __init__(self, reward_type: str = "sparse", distraction: bool = False, **kwargs):
+    def __init__(
+            self, 
+            reward_type: str = "sparse", 
+            distraction: bool = False, 
+            viewpoint: bool = False, 
+            **kwargs):
 
         # Ensure we get the path separator correct on windows
         if distraction:
@@ -37,5 +42,6 @@ class xArm6ReachEnv(MujocoXarm6Env, EzPickle):
             initial_qpos=initial_qpos, 
             reward_type=reward_type,
             distraction=distraction,
+            viewpoint=viewpoint,
             **kwargs)
         EzPickle.__init__(self, reward_type=reward_type, **kwargs)
