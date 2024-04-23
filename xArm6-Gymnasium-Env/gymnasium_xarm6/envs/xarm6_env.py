@@ -15,6 +15,13 @@ DEFAULT_CAMERA_CONFIG = {
     "lookat": np.array([0.076010, 0.068771, 0.004339]),
 }
 
+def zhao_legibility(achieved_goal, goal, distraction_location, t=0, omega=20):
+    d_goal = distance(achieved_goal, goal)
+    d_dist = distance(achieved_goal, distraction_location)
+    return omega * np.exp(-t/30) * np.log(np.abs(d_goal - d_dist) / (d_goal + 1) + 1 ) * np.sign(d_dist - d_goal)
+
+def relu_at(x, a=0):
+    return x * (x > a)
 
 def distance(goal_a, goal_b, view=0, enable_view=False):
     assert goal_a.shape == goal_b.shape
@@ -122,7 +129,9 @@ def get_base_xarm6_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
             # import pdb; pdb.set_trace()
             d_goal = distance(grip_pos, desired_pos)
             if self.distraction:
-                reward = -d_goal + 0.3 * distance(grip_pos, distraction_pos, view, enable_view=self.viewpoint) - 0.3*rot_error
+                d_dist = distance(grip_pos, distraction_pos, view, enable_view=self.viewpoint)
+                d_dist = relu_at(d_dist, 0.05)
+                reward = -d_goal + 0.3 * d_dist - 0.3*rot_error
             else:
                 reward = -d_goal - 1.0*rot_error
             if self.reward_type == "sparse":
@@ -189,14 +198,14 @@ def get_base_xarm6_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
                         # goal = self.initial_gripper_xpos[:3] + self.np_random.uniform(
                         #     -self.target_range, self.target_range, size=3
                         # )
-                        goal = np.array([0.5, 0.1, 0.1]) + np.array([
+                        goal = np.array([0.5, 0, 0.1]) + np.array([
                             2*self.np_random.uniform(-self.target_range,
                                                 self.target_range, size=1)[0],
                             self.np_random.uniform(-self.target_range,
                                                 self.target_range, size=1)[0],
                             0,
                         ])
-                        distraction_pos = np.array([0.5, -0.1, 0.1]) + np.array([
+                        distraction_pos = np.array([0.5, 0, 0.1]) + np.array([
                             2*self.np_random.uniform(-self.target_range,
                                                 self.target_range, size=1)[0],
                             self.np_random.uniform(-self.target_range,
