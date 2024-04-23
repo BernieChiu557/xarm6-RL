@@ -21,7 +21,7 @@ def zhao_legibility(achieved_goal, goal, distraction_location, t=0, omega=20):
     return omega * np.exp(-t/30) * np.log(np.abs(d_goal - d_dist) / (d_goal + 1) + 1 ) * np.sign(d_dist - d_goal)
 
 def relu_at(x, a=0):
-    return x * (x > a)
+    return x * (x < a)
 
 def distance(goal_a, goal_b, view=0, enable_view=False):
     assert goal_a.shape == goal_b.shape
@@ -130,8 +130,8 @@ def get_base_xarm6_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
             d_goal = distance(grip_pos, desired_pos)
             if self.distraction:
                 d_dist = distance(grip_pos, distraction_pos, view, enable_view=self.viewpoint)
-                d_dist = relu_at(d_dist, 0.05)
-                reward = -d_goal + 0.3 * d_dist - 0.3*rot_error
+                d_dist = relu_at(d_dist, 0.1)
+                reward = -d_goal + 0.7 * d_dist - 0.3 * rot_error
             else:
                 reward = -d_goal - 1.0*rot_error
             if self.reward_type == "sparse":
@@ -198,14 +198,14 @@ def get_base_xarm6_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
                         # goal = self.initial_gripper_xpos[:3] + self.np_random.uniform(
                         #     -self.target_range, self.target_range, size=3
                         # )
-                        goal = np.array([0.5, 0, 0.1]) + np.array([
+                        goal = np.array([0.5, 0.05, 0.0]) + np.array([
                             2*self.np_random.uniform(-self.target_range,
                                                 self.target_range, size=1)[0],
                             self.np_random.uniform(-self.target_range,
                                                 self.target_range, size=1)[0],
                             0,
                         ])
-                        distraction_pos = np.array([0.5, 0, 0.1]) + np.array([
+                        distraction_pos = np.array([0.5, -0.05, 0.0]) + np.array([
                             2*self.np_random.uniform(-self.target_range,
                                                 self.target_range, size=1)[0],
                             self.np_random.uniform(-self.target_range,
@@ -224,7 +224,7 @@ def get_base_xarm6_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
             # side demo
             if fn_type == 'demo1':
                 def _sample_goal():
-                    goal = np.array([0.6, 0.0, 0.1])
+                    goal = np.array([0.6, 0.0, 0.0])
                     distraction_pos = np.array([0.4, 0.0, 0.0])
                     view = np.array([0.])
                     return np.concatenate((goal, self.initial_gripper_xquat, distraction_pos, view))
@@ -233,7 +233,13 @@ def get_base_xarm6_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
             
             "top demo"
             if fn_type == 'demo2':
-                raise NotImplementedError('demo 2 not yet implemented')
+                def _sample_goal():
+                    goal = np.array([0.6, 0.0, 0.0])
+                    distraction_pos = np.array([0.45, 0.0, 0.0])
+                    view = np.array([1.])
+                    return np.concatenate((goal, self.initial_gripper_xquat, distraction_pos, view))
+                
+                return _sample_goal
                 
             raise ValueError('wrong sample_type')
 
@@ -266,7 +272,13 @@ class MujocoXarm6Env(get_base_xarm6_env(MujocoRobotEnv)):
                     "lookat": np.array([0.076010, 0.068771, 0.004339]),
                 }
             elif kwargs['sample_type'] == 'demo2':
-                raise NotImplementedError('demo 2 camera config not yet implemented')
+                default_camera_config = {
+                    "distance": 1.7,
+                    "azimuth": 180.0,
+                    "elevation": -60.0,
+
+                    "lookat": np.array([0.3, 0, 0.004339]),
+                }
             else:
                 raise ValueError('wrong sample_type')
 

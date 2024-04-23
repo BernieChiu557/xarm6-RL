@@ -12,4 +12,4 @@ python -m rl_zoo3.train --algo sac --gym-packages gymnasium_xarm6 --env xArm6Rea
 @REM make video
 python record_video.py -f logs --env FetchReach-v2 --algo sac --exp-id 3
 python record_video.py -f logs --env xArm6ReachDenseDist-v1 --gym-packages gymnasium_xarm6 --algo sac --exp-id 4
-python record_video.py -f logs --env xArm6ReachDenseDist-v1 --gym-packages gymnasium_xarm6 --algo sac --exp-id 4 --env-kwargs sample_type:'fix' -n 100
+python record_video.py -f logs --env xArm6ReachDenseDistView-v1 --gym-packages gymnasium_xarm6 --algo sac --exp-id 10 --env-kwargs sample_type:'demo1' -n 100
