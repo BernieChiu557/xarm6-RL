@@ -22,6 +22,7 @@ def zhao_legibility(achieved_goal, goal, distraction_location, t=0, omega=20):
 
 def relu_at(x, a=0):
     return -10 * (x < a)
+    # return x * (x < a)
 
 def distance(goal_a, goal_b, view=0, enable_view=False):
     assert goal_a.shape == goal_b.shape
