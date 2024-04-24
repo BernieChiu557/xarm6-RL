@@ -29,12 +29,12 @@ Licence: MIT
     </worldbody>
 
     <actuator>
-        <motor name="robot0:shoulder_pan_joint" gear="200" joint="robot0:shoulder_pan_joint"/>
-        <motor name="robot0:shoulder_lift_joint" gear="200" joint="robot0:shoulder_lift_joint"/>
-        <motor name="robot0:elbow_flex_joint" gear="200" joint="robot0:elbow_flex_joint"/>
-        <motor name="robot0:forearm_roll_joint" gear="200" joint="robot0:forearm_roll_joint"/>
-        <motor name="robot0:wrist_flex_joint" gear="200" joint="robot0:wrist_flex_joint"/>
-        <motor name="robot0:wrist_roll_joint" gear="200" joint="robot0:wrist_roll_joint"/>
+        <motor name="robot0:shoulder_pan_joint" gear="50" joint="robot0:shoulder_pan_joint"/>
+        <motor name="robot0:shoulder_lift_joint" gear="50" joint="robot0:shoulder_lift_joint"/>
+        <motor name="robot0:elbow_flex_joint" gear="50" joint="robot0:elbow_flex_joint"/>
+        <motor name="robot0:forearm_roll_joint" gear="50" joint="robot0:forearm_roll_joint"/>
+        <motor name="robot0:wrist_flex_joint" gear="50" joint="robot0:wrist_flex_joint"/>
+        <motor name="robot0:wrist_roll_joint" gear="50" joint="robot0:wrist_roll_joint"/>
         <!--  gear 1000 -->
     </actuator>
 </mujoco>

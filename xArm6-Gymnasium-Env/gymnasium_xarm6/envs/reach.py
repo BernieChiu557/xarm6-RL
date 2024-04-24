@@ -7,8 +7,8 @@ class xArm6ReachEnv(MujocoXarm6Env, EzPickle):
     def __init__(
             self, 
             reward_type: str = "sparse", 
-            distraction: bool = False, 
-            viewpoint: bool = False, 
+            distraction: bool = True, 
+            viewpoint: bool = True, 
             **kwargs):
 
         # Ensure we get the path separator correct on windows

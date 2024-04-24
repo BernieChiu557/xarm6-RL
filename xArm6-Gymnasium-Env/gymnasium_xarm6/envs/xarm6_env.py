@@ -21,7 +21,7 @@ def zhao_legibility(achieved_goal, goal, distraction_location, t=0, omega=20):
     return omega * np.exp(-t/30) * np.log(np.abs(d_goal - d_dist) / (d_goal + 1) + 1 ) * np.sign(d_dist - d_goal)
 
 def relu_at(x, a=0):
-    return x * (x < a)
+    return -10 * (x < a)
 
 def distance(goal_a, goal_b, view=0, enable_view=False):
     assert goal_a.shape == goal_b.shape
@@ -120,7 +120,7 @@ def get_base_xarm6_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
 
         def compute_reward(self, achieved_goal, goal, info):
             grip_pos, grip_quat = achieved_goal[...,:3], achieved_goal[..., 3:7]
-            desired_pos, desired_quat, distraction_pos, view, = goal[..., :3], goal[..., 3:7], goal[..., 7:10], goal[..., 10]
+            desired_pos, desired_quat, distraction_pos, view = goal[..., :3], goal[..., 3:7], goal[..., 7:10], goal[..., 10]
             attitude_error = rotations.quat_mul(
                 rotations.quat_conjugate(grip_quat), desired_quat)
             # attitude_error = rotations.quat_identity()
@@ -131,7 +131,7 @@ def get_base_xarm6_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
             if self.distraction:
                 d_dist = distance(grip_pos, distraction_pos, view, enable_view=self.viewpoint)
                 d_dist = relu_at(d_dist, 0.1)
-                reward = -d_goal + 0.7 * d_dist - 0.3 * rot_error
+                reward = -d_goal + 1.0 * d_dist - 0.3 * rot_error
             else:
                 reward = -d_goal - 1.0*rot_error
             if self.reward_type == "sparse":
@@ -231,10 +231,10 @@ def get_base_xarm6_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
                 
                 return _sample_goal
             
-            "top demo"
+            # top demo
             if fn_type == 'demo2':
                 def _sample_goal():
-                    goal = np.array([0.6, 0.0, 0.0])
+                    goal = np.array([0.6, 0.1, 0.0])
                     distraction_pos = np.array([0.45, 0.0, 0.0])
                     view = np.array([1.])
                     return np.concatenate((goal, self.initial_gripper_xquat, distraction_pos, view))
@@ -402,13 +402,11 @@ class MujocoXarm6Env(get_base_xarm6_env(MujocoRobotEnv)):
             self.model, self.data, "robot0:grip"
         ).copy()
 
-        # initial_gripper_xmat = self._utils.get_site_xmat(
-        #     self.model, self.data, "robot0:grip"
-        # ).copy()
+        initial_gripper_xmat = self._utils.get_site_xmat(
+            self.model, self.data, "robot0:grip"
+        ).copy()
         # import pdb; pdb.set_trace()
-        # self.initial_gripper_xquat = rotations.mat2quat(initial_gripper_xmat)
-        self.initial_gripper_xquat = np.array([0, -1., 0, 0])
+        self.initial_gripper_xquat = rotations.mat2quat(initial_gripper_xmat)
+        # self.initial_gripper_xquat = np.array([0, -1., 0, 0])
         if self.has_object:
-            self.height_offset = self._utils.get_site_xpos(
-                self.model, self.data, "object0"
-            )[2]
+            self.height_offset = self._utils.get_site_xpos(self.model, self.data, "object0")[2]
