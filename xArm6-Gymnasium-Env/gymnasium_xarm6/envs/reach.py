@@ -25,6 +25,12 @@ class xArm6ReachEnv(MujocoXarm6Env, EzPickle):
             'robot0:slide0': 0.,
             'robot0:slide1': 0.,
             'robot0:slide2': 0.,
+            "robot0:shoulder_pan_joint": 0.0,
+            "robot0:shoulder_lift_joint": -1.0,
+            "robot0:elbow_flex_joint": 0.0,
+            "robot0:forearm_roll_joint": 0.0,
+            "robot0:wrist_flex_joint": 1.0,
+            "robot0:wrist_roll_joint": 0.0,
         }
 
         print(f'enable viewpoint: {viewpoint}')
