@@ -15,14 +15,17 @@ DEFAULT_CAMERA_CONFIG = {
     "lookat": np.array([0.076010, 0.068771, 0.004339]),
 }
 
+
 def zhao_legibility(achieved_goal, goal, distraction_location, t=0, omega=20):
     d_goal = distance(achieved_goal, goal)
     d_dist = distance(achieved_goal, distraction_location)
-    return omega * np.exp(-t/30) * np.log(np.abs(d_goal - d_dist) / (d_goal + 1) + 1 ) * np.sign(d_dist - d_goal)
+    return omega * np.exp(-t/30) * np.log(np.abs(d_goal - d_dist) / (d_goal + 1) + 1) * np.sign(d_dist - d_goal)
+
 
 def relu_at(x, a=0):
-    return -10 * (x < a)
+    return -1.0 * (x < a)
     # return x * (x < a)
+
 
 def distance(goal_a, goal_b, view=0, enable_view=False):
     assert goal_a.shape == goal_b.shape
@@ -36,7 +39,8 @@ def distance(goal_a, goal_b, view=0, enable_view=False):
                 goal_a = goal_a[[0, 1]]
                 goal_b = goal_b[[0, 1]]
             else:
-                raise ValueError('wrong view number, 0 for sideview and 1 for top view')
+                raise ValueError(
+                    'wrong view number, 0 for sideview and 1 for top view')
         else:
             view = view + 1
             view = view.astype(int)
@@ -49,8 +53,7 @@ def distance(goal_a, goal_b, view=0, enable_view=False):
 
             goal_a = goal_a[mask].reshape(-1, 2)
             goal_b = goal_b[mask].reshape(-1, 2)
-            
-        
+
     return np.linalg.norm(goal_a - goal_b, axis=-1)
 
 
@@ -110,7 +113,7 @@ def get_base_xarm6_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
                 sample_type = kwargs.pop('sample_type')
             else:
                 sample_type = 'random'
-            
+
             print(f'sample goal function type: {sample_type}')
             self._sample_goal = self.sample_goal_fn(fn_type=sample_type)
 
@@ -120,8 +123,10 @@ def get_base_xarm6_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
         # ----------------------------
 
         def compute_reward(self, achieved_goal, goal, info):
-            grip_pos, grip_quat = achieved_goal[...,:3], achieved_goal[..., 3:7]
-            desired_pos, desired_quat, distraction_pos, view = goal[..., :3], goal[..., 3:7], goal[..., 7:10], goal[..., 10]
+            grip_pos, grip_quat = achieved_goal[...,
+                                                :3], achieved_goal[..., 3:7]
+            desired_pos, desired_quat, distraction_pos, view = goal[...,
+                                                                    :3], goal[..., 3:7], goal[..., 7:10], goal[..., 10]
             attitude_error = rotations.quat_mul(
                 rotations.quat_conjugate(grip_quat), desired_quat)
             # attitude_error = rotations.quat_identity()
@@ -130,9 +135,11 @@ def get_base_xarm6_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
             # import pdb; pdb.set_trace()
             d_goal = distance(grip_pos, desired_pos)
             if self.distraction:
-                d_dist = distance(grip_pos, distraction_pos, view, enable_view=self.viewpoint)
+                d_dist = distance(grip_pos, distraction_pos,
+                                  view, enable_view=self.viewpoint)
                 d_dist = relu_at(d_dist, 0.1)
-                reward = -d_goal + 1.0 * d_dist - 0.3 * rot_error
+                reward = -5*d_goal + 3.0 * d_dist - 0.3 * rot_error + \
+                    0.3*(grip_pos[..., 2]).sum()
             else:
                 reward = -d_goal - 1.0*rot_error
             if self.reward_type == "sparse":
@@ -199,18 +206,18 @@ def get_base_xarm6_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
                         # goal = self.initial_gripper_xpos[:3] + self.np_random.uniform(
                         #     -self.target_range, self.target_range, size=3
                         # )
-                        goal = np.array([0.5, 0.05, 0.0]) + np.array([
-                            2*self.np_random.uniform(-self.target_range,
-                                                self.target_range, size=1)[0],
+                        goal = np.array([0.5, 0.0, 0.01]) + np.array([
+                            2.5*self.np_random.uniform(-self.target_range,
+                                                     self.target_range, size=1)[0],
                             self.np_random.uniform(-self.target_range,
-                                                self.target_range, size=1)[0],
+                                                   self.target_range, size=1)[0],
                             0,
                         ])
-                        distraction_pos = np.array([0.5, -0.05, 0.0]) + np.array([
-                            2*self.np_random.uniform(-self.target_range,
-                                                self.target_range, size=1)[0],
+                        distraction_pos = np.array([0.5, 0.0, 0.01]) + np.array([
+                            2.5*self.np_random.uniform(-self.target_range,
+                                                     self.target_range, size=1)[0],
                             self.np_random.uniform(-self.target_range,
-                                                self.target_range, size=1)[0],
+                                                   self.target_range, size=1)[0],
                             0,
                         ])
 
@@ -219,34 +226,36 @@ def get_base_xarm6_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
                     else:
                         view = np.array([0.])
                     return np.concatenate((goal, self.initial_gripper_xquat, distraction_pos, view))
-                
+
                 return _sample_goal
-            
+
             # side demo
             if fn_type == 'demo1':
                 def _sample_goal():
-                    goal = np.array([0.6, 0.0, 0.0])
-                    distraction_pos = np.array([0.4, 0.0, 0.0])
+                    goal = np.array([0.6, 0.0, 0.01])
+                    distraction_pos = np.array([0.4, 0.0, 0.01])
                     view = np.array([0.])
                     return np.concatenate((goal, self.initial_gripper_xquat, distraction_pos, view))
-                
+
                 return _sample_goal
-            
+
             # top demo
             if fn_type == 'demo2':
                 def _sample_goal():
-                    goal = np.array([0.6, 0.1, 0.0])
-                    distraction_pos = np.array([0.45, 0.0, 0.0])
+                    goal = np.array([0.6, 0.0, 0.01])
+                    distraction_pos = np.array([0.45, 0.0, 0.01])
                     view = np.array([1.])
                     return np.concatenate((goal, self.initial_gripper_xquat, distraction_pos, view))
-                
+
                 return _sample_goal
-                
+
             raise ValueError('wrong sample_type')
 
         def _is_success(self, achieved_goal, goal):
-            grip_pos, grip_quat = achieved_goal[...,:3], achieved_goal[..., 3:7]
-            desired_pos, desired_quat, distraction_pos = goal[..., :3], goal[..., 3:7], goal[..., 7:10]
+            grip_pos, grip_quat = achieved_goal[...,
+                                                :3], achieved_goal[..., 3:7]
+            desired_pos, desired_quat, distraction_pos = goal[...,
+                                                              :3], goal[..., 3:7], goal[..., 7:10]
             d = distance(grip_pos, desired_pos)
             attitude_error = rotations.quat_mul(
                 grip_quat, rotations.quat_conjugate(desired_quat))
@@ -329,8 +338,8 @@ class MujocoXarm6Env(get_base_xarm6_env(MujocoRobotEnv)):
             grip_quat,
             grip_velp,
             grip_velr,
-            robot_qpos[...,:6],
-            robot_qvel[...,:6],
+            robot_qpos[..., :6],
+            robot_qvel[..., :6],
         )
 
     def _get_gripper_xpos(self):
@@ -410,4 +419,5 @@ class MujocoXarm6Env(get_base_xarm6_env(MujocoRobotEnv)):
         self.initial_gripper_xquat = rotations.mat2quat(initial_gripper_xmat)
         # self.initial_gripper_xquat = np.array([0, -1., 0, 0])
         if self.has_object:
-            self.height_offset = self._utils.get_site_xpos(self.model, self.data, "object0")[2]
+            self.height_offset = self._utils.get_site_xpos(
+                self.model, self.data, "object0")[2]

@@ -81,4 +81,4 @@ xArm6ReachDenseDistView-v1:
     goal_selection_strategy='future',
     n_sampled_goal=4
   )"
-  policy_kwargs: "dict(net_arch=[128, 128])"
+  policy_kwargs: "dict(net_arch=[256, 256])"
