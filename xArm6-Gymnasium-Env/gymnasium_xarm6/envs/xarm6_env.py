@@ -138,8 +138,8 @@ def get_base_xarm6_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
                 d_dist = distance(grip_pos, distraction_pos,
                                   view, enable_view=self.viewpoint)
                 d_dist = relu_at(d_dist, 0.1)
-                reward = -5*d_goal + 3.0 * d_dist - 0.3 * rot_error + \
-                    10*relu_at(grip_pos[..., 2], 0.0)
+                reward = -5*d_goal + 1.0 * d_dist - 0.3 * rot_error + \
+                    1*relu_at(grip_pos[..., 2], 0.0)
             else:
                 reward = -d_goal - 1.0*rot_error
             if self.reward_type == "sparse":
