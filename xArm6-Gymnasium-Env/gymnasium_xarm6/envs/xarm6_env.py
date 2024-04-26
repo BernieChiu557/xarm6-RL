@@ -138,7 +138,7 @@ def get_base_xarm6_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
                 d_dist = distance(grip_pos, distraction_pos,
                                   view, enable_view=self.viewpoint)
                 d_dist = relu_at(d_dist, 0.1)
-                reward = -5*d_goal + 1.0 * d_dist - 0.3 * rot_error + \
+                reward = -6*d_goal + 3.0 * d_dist - 0.5 * rot_error + \
                     1*relu_at(grip_pos[..., 2], 0.0)
             else:
                 reward = -d_goal - 1.0*rot_error
@@ -206,14 +206,14 @@ def get_base_xarm6_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
                         # goal = self.initial_gripper_xpos[:3] + self.np_random.uniform(
                         #     -self.target_range, self.target_range, size=3
                         # )
-                        goal = np.array([0.5, 0.0, 0.01]) + np.array([
+                        goal = np.array([0.5, 0.1, 0.01]) + np.array([
                             2.5*self.np_random.uniform(-self.target_range,
                                                      self.target_range, size=1)[0],
                             self.np_random.uniform(-self.target_range,
                                                    self.target_range, size=1)[0],
                             0,
                         ])
-                        distraction_pos = np.array([0.5, 0.0, 0.01]) + np.array([
+                        distraction_pos = np.array([0.5, -0.1, 0.01]) + np.array([
                             2.5*self.np_random.uniform(-self.target_range,
                                                      self.target_range, size=1)[0],
                             self.np_random.uniform(-self.target_range,
@@ -243,7 +243,7 @@ def get_base_xarm6_env(RobotEnvClass: Union[MujocoPyRobotEnv, MujocoRobotEnv]):
             if fn_type == 'demo2':
                 def _sample_goal():
                     goal = np.array([0.6, 0.0, 0.01])
-                    distraction_pos = np.array([0.45, 0.0, 0.01])
+                    distraction_pos = np.array([0.4, 0.0, 0.01])
                     view = np.array([1.])
                     return np.concatenate((goal, self.initial_gripper_xquat, distraction_pos, view))
 
@@ -279,7 +279,7 @@ class MujocoXarm6Env(get_base_xarm6_env(MujocoRobotEnv)):
                     "azimuth": 90.0,
                     "elevation": 0.0,
 
-                    "lookat": np.array([0.076010, 0.068771, 0.004339]),
+                    "lookat": np.array([0.2, 0.068771, 0.004339]),
                 }
             elif kwargs['sample_type'] == 'demo2':
                 default_camera_config = {
@@ -290,7 +290,7 @@ class MujocoXarm6Env(get_base_xarm6_env(MujocoRobotEnv)):
                     "lookat": np.array([0.3, 0, 0.004339]),
                 }
             else:
-                raise ValueError('wrong sample_type')
+                default_camera_config = DEFAULT_CAMERA_CONFIG
 
         super().__init__(default_camera_config=default_camera_config, **kwargs)
 
