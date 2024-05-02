@@ -46,7 +46,7 @@ class xArm6ReachEnv(MujocoXarm6Env, EzPickle):
             target_offset=0.0,
             obj_range=0.25, 
             target_range=0.1, 
-            distance_threshold=0.01,
+            distance_threshold=0.1,
             initial_qpos=initial_qpos, 
             reward_type=reward_type,
             distraction=distraction,
